@@ -16,7 +16,16 @@ app.get("/", (req, res) => {
 
 app.get("/api/reels", (req, res) => {
   res.json({
-    reels: []
+    reels: [
+      {
+        id: 1,
+        username: "Aravind",
+        caption: "Welcome to SocialApp 🔥",
+        videoUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+        likes: 0,
+        comments: 0
+      }
+    ]
   });
 });
 
