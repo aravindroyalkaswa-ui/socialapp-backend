@@ -1,5 +1,11 @@
 const { testDatabase } = require("./db");
 testDatabase().catch(error => {
+testDatabase().catch(error => {
+  console.error("DATABASE CONNECTION FAILED");
+  console.error("DB ERROR CODE:", error.code);
+  console.error("DB ERROR NAME:", error.name);
+  console.error("DB ERROR MESSAGE:", error.message);
+});
   console.error("DATABASE CONNECTION FAILED:", error.message);
 });
 const express = require("express");
