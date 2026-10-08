@@ -1,4 +1,4 @@
-const { testDatabase } = require("./db");
+const { testDatabase, createUser, pool } = require("./db");
 testDatabase().catch(error => {
 testDatabase().catch(error => {
   console.error("DATABASE CONNECTION FAILED");
@@ -133,3 +133,74 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`SocialApp backend running on port ${PORT}`);
 });
+
+app.post("/api/users", async (req, res) => {
+  try {
+    const { username, displayName } = req.body;
+
+    if (!username) {
+      return res.status(400).json({
+        error: "username is required"
+      });
+    }
+
+    const user = await createUser(username, displayName || username);
+
+    res.status(201).json({
+      message: "User created successfully",
+      user
+    });
+  } catch (error) {
+    console.error("CREATE USER ERROR:", error.message);
+
+    if (error.code === "23505") {
+      return res.status(409).json({
+        error: "Username already exists"
+      });
+    }
+
+    res.status(500).json({
+      error: "Failed to create user"
+    });
+  }
+});
+
+app.get("/api/users", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM users ORDER BY id ASC"
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("GET USERS ERROR:", error.message);
+
+    res.status(500).json({
+      error: "Failed to fetch users"
+    });
+  }
+});
+
+app.get("/api/users/:username", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM users WHERE username = $1",
+      [req.params.username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("GET USER ERROR:", error.message);
+
+    res.status(500).json({
+      error: "Failed to fetch user"
+    });
+  }
+});
+
