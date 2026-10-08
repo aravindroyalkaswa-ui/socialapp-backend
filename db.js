@@ -55,3 +55,16 @@ module.exports = {
   testDatabase
 };
 
+
+async function createUser(username, displayName) {
+  const result = await pool.query(
+    `INSERT INTO users (username, display_name)
+     VALUES ($1, $2)
+     RETURNING *`,
+    [username, displayName]
+  );
+
+  return result.rows[0];
+}
+
+module.exports.createUser = createUser;
