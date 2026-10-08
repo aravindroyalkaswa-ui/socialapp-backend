@@ -50,11 +50,29 @@ let reels = [
   {
     id: 1,
     username: "Aravind",
-    caption: "Welcome to SocialApp 🔥",
+    caption: "Welcome to SocialApp 🔥 #SocialApp",
     videoUrl:
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
-    likes: 0,
-    comments: 0
+    likes: 12,
+    comments: 3
+  },
+  {
+    id: 2,
+    username: "Rahul",
+    caption: "Beautiful day ✨ #reels #explore",
+    videoUrl:
+      "https://www.w3schools.com/html/mov_bbb.mp4",
+    likes: 28,
+    comments: 6
+  },
+  {
+    id: 3,
+    username: "Priya",
+    caption: "Keep smiling 😊 #SocialApp",
+    videoUrl:
+      "https://media.w3.org/2010/05/sintel/trailer.mp4",
+    likes: 45,
+    comments: 9
   }
 ];
 
