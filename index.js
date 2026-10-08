@@ -1,3 +1,7 @@
+const { testDatabase } = require("./db");
+testDatabase().catch(error => {
+  console.error("DATABASE CONNECTION FAILED:", error.message);
+});
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
