@@ -9,6 +9,7 @@ const { requireAuth } = require("./middleware");
 const { toggleLike, addComment, listComments } = require("./social");
 const { getProfile, searchUsers, toggleFollow, updateProfile } = require("./users");
 const { createMessage, listMessages, listNotifications } = require("./extras");
+const { testDatabase } = require("./db");
 
 const app = express();
 
@@ -76,6 +77,16 @@ app.post("/chat", async (req, res) => {
 
 const port = Number(process.env.PORT) || 3000;
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`SocialApp AI backend running on http://127.0.0.1:${port}`);
-});
+async function startServer() {
+  try {
+    await testDatabase();
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`SocialApp AI backend listening on port ${port}`);
+    });
+  } catch (err) {
+    console.error("Database initialization failed:", err.message);
+    process.exit(1);
+  }
+}
+
+startServer();
