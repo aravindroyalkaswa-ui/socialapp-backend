@@ -19,6 +19,7 @@ async function testDatabase() {
       display_name VARCHAR(100),
       bio TEXT,
       avatar_url TEXT,
+      password_hash TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -53,6 +54,10 @@ async function testDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(follower_id, following_id)
     );
+  `);
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS password_hash TEXT;
   `);
 
   console.log("DATABASE TABLES READY");
