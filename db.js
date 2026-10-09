@@ -38,6 +38,14 @@ async function testDatabase() {
       UNIQUE(user_id, post_id)
     );
 
+    CREATE TABLE IF NOT EXISTS comments (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+      text TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS follows (
       id SERIAL PRIMARY KEY,
       follower_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
