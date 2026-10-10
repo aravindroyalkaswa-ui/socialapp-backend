@@ -20,6 +20,24 @@ let client = null;
 
 app.post("/api/posts", requireAuth, createPost);
 app.get("/api/posts", listPosts);
+app.get("/api/reels", async (req, res) => {
+  try {
+    const result = await require("./db").pool.query(`
+      SELECT p.id, p.caption, p.media_url AS "videoUrl",
+             p.created_at, u.username
+      FROM posts p
+      JOIN users u ON u.id = p.user_id
+      WHERE p.media_url IS NOT NULL
+        AND p.media_url <> ''
+      ORDER BY p.created_at DESC
+      LIMIT 50
+    `);
+    res.json({ reels: result.rows });
+  } catch (err) {
+    console.error("Load reels failed:", err.message);
+    res.status(500).json({ error: "Could not load reels." });
+  }
+});
 app.post("/api/posts/:postId/like", requireAuth, toggleLike);
 app.post("/api/posts/:postId/comments", requireAuth, addComment);
 app.get("/api/posts/:postId/comments", listComments);
