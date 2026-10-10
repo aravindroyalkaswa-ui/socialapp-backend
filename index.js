@@ -41,9 +41,9 @@ let client = null;
 
 app.post("/api/posts", requireAuth, createPost);
 app.get("/api/posts", listPosts);
-app.post("/api/reels/upload", reelUpload.single("video"), async (req, res) => {
+app.post("/api/reels/upload", requireAuth, reelUpload.single("video"), async (req, res) => {
   try {
-    const { caption, username } = req.body || {};
+    const { caption } = req.body || {};
 
     if (!req.file) {
       return res.status(400).json({ error: "Please select a video." });
@@ -58,23 +58,13 @@ app.post("/api/reels/upload", reelUpload.single("video"), async (req, res) => {
     });
 
     const { pool } = require("./db");
-    const userResult = await pool.query(
-      "SELECT id FROM users WHERE username = $1 LIMIT 1",
-      [typeof username === "string" && username.trim() ? username.trim() : "Aravind"]
-    );
-
-    if (!userResult.rows.length) {
-      return res.status(400).json({
-        error: "User not found. Please sign in with a registered account first."
-      });
-    }
 
     const postResult = await pool.query(
       `INSERT INTO posts (user_id, caption, media_url)
        VALUES ($1, $2, $3)
        RETURNING id, caption, media_url AS "videoUrl", created_at`,
       [
-        userResult.rows[0].id,
+        req.user.userId,
         typeof caption === "string" ? caption.trim().slice(0, 2000) : "",
         uploaded.secure_url
       ]
