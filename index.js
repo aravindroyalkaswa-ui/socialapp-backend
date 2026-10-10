@@ -3,6 +3,9 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+const { Readable } = require("stream");
 const { signup, login } = require("./auth");
 const { createPost, listPosts } = require("./posts");
 const { requireAuth } = require("./middleware");
@@ -10,6 +13,24 @@ const { toggleLike, addComment, listComments } = require("./social");
 const { getProfile, searchUsers, toggleFollow, updateProfile } = require("./users");
 const { createMessage, listMessages, listNotifications } = require("./extras");
 const { testDatabase } = require("./db");
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const reelUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype && file.mimetype.startsWith("video/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Please upload a video file."));
+    }
+  }
+});
 
 const app = express();
 
@@ -20,6 +41,52 @@ let client = null;
 
 app.post("/api/posts", requireAuth, createPost);
 app.get("/api/posts", listPosts);
+app.post("/api/reels/upload", reelUpload.single("video"), async (req, res) => {
+  try {
+    const { caption, username } = req.body || {};
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Please select a video." });
+    }
+
+    const uploaded = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: "video", folder: "socialapp/reels" },
+        (error, result) => error ? reject(error) : resolve(result)
+      );
+      Readable.from(req.file.buffer).pipe(stream);
+    });
+
+    const { pool } = require("./db");
+    const userResult = await pool.query(
+      "SELECT id FROM users WHERE username = $1 LIMIT 1",
+      [typeof username === "string" && username.trim() ? username.trim() : "Aravind"]
+    );
+
+    if (!userResult.rows.length) {
+      return res.status(400).json({
+        error: "User not found. Please sign in with a registered account first."
+      });
+    }
+
+    const postResult = await pool.query(
+      `INSERT INTO posts (user_id, caption, media_url)
+       VALUES ($1, $2, $3)
+       RETURNING id, caption, media_url AS "videoUrl", created_at`,
+      [
+        userResult.rows[0].id,
+        typeof caption === "string" ? caption.trim().slice(0, 2000) : "",
+        uploaded.secure_url
+      ]
+    );
+
+    res.status(201).json({ reel: postResult.rows[0] });
+  } catch (err) {
+    console.error("Reel upload failed:", err.message);
+    res.status(500).json({ error: "Reel upload failed. Please try again." });
+  }
+});
+
 app.get("/api/reels", async (req, res) => {
   try {
     const result = await require("./db").pool.query(`
