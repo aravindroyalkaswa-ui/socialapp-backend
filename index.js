@@ -32,12 +32,63 @@ const reelUpload = multer({
   }
 });
 
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype && file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Please upload an image file."));
+    }
+  }
+});
+
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: "20kb" }));
 
 let client = null;
+
+app.post("/api/posts/upload", requireAuth, photoUpload.single("image"), async (req, res) => {
+  try {
+    const caption = typeof req.body?.caption === "string"
+      ? req.body.caption.trim().slice(0, 2000)
+      : "";
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Please select a photo." });
+    }
+
+    if (!process.env.CLOUDINARY_CLOUD_NAME ||
+        !process.env.CLOUDINARY_API_KEY ||
+        !process.env.CLOUDINARY_API_SECRET) {
+      return res.status(500).json({ error: "Photo storage is not configured." });
+    }
+
+    const uploaded = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: "image", folder: "socialapp/posts" },
+        (error, result) => error ? reject(error) : resolve(result)
+      );
+      Readable.from(req.file.buffer).pipe(stream);
+    });
+
+    const { pool } = require("./db");
+    const result = await pool.query(
+      `INSERT INTO posts (user_id, caption, media_url)
+       VALUES ($1, $2, $3)
+       RETURNING id, user_id, caption, media_url, created_at`,
+      [req.user.userId, caption, uploaded.secure_url]
+    );
+
+    res.status(201).json({ post: result.rows[0] });
+  } catch (err) {
+    console.error("Photo upload failed:", err.message);
+    res.status(500).json({ error: "Photo upload failed. Please try again." });
+  }
+});
 
 app.post("/api/posts", requireAuth, createPost);
 app.get("/api/posts", listPosts);
